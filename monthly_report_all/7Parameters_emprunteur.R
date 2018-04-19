@@ -26,13 +26,17 @@ All<-c("MAAF Assurances","Cardif","Groupe AVIVA", "AXA", "SIMPL'ASSUR","Groupe A
 
 
 Types <- c("CLASSIQUE","MUTUELLE","BANCASSUREUR","RESIDUAL")  # For spain: LC = "Low Cost", For Italy: only Direct
-
+# TypesC <- data.frame(types = Types,typesComplete = c("CLASSIQUE","MUTUELLE","BANCASSUREUR", "RESIDUAL"))
 
 
 
 ## Covers
 
 covfr = c("Formule Optimum","Minimum")
+coveragenames = c("Top 1 Formule Optimum","Top 1 Minimum")
+formulaNames <- covfr #c("Formule Optimum","Minimum")
+formulaTypes <- coveragenames #c("Formule Optimum","Minimum")
+formulaMapping <- cbind(formulaNames,formulaNames)
 
 
 

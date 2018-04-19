@@ -7,15 +7,22 @@ summarybefore <- NULL
 
 
 res=data.frame(frdata_cumul$period,frdata_cumul$price,frdata_cumul$insurer,frdata_cumul$profilID,frdata_cumul$coverage)
-# !!! pourquoi pas faire ça direct via crawling_all, pq passer par une variable frdata_cumul ?
+# !!! pourquoi pas faire ?a direct via crawling_all, pq passer par une variable frdata_cumul ?
+
+
+## We rename the columns
 
 names(res)=c("period","price","insurer","profilID","coverage")
 
+
+
+## We re-arrange the database.
 
 res=na.omit(res)
 res$period=as.character(res$period)
 res=res[res$coverage%in%covfr,]
 res=res[order(res$period),]
+
 
 
 ## We chose the period from whom we calculate.
@@ -24,6 +31,7 @@ res=res[res$period>=lp,]
 
 
 
+## We create 2 vectors with the differents periods and insurers.
 
 periods <- unique(as.character(res$period))
 players <- levels(as.factor(res$insurer))
@@ -31,7 +39,8 @@ players <- levels(as.factor(res$insurer))
 
 
 
-# Summary Tab
+## We create an empty dataframe.
+
 summaryTab <- data.frame("insurer"=NaN,"coverage"=NaN,"period"=NaN,
                          "PlayerType"=NaN,"AvgEvolByProfile"=NaN,"ImpactedProfile"=NaN,
                          "AvgPremium"=NaN,
@@ -42,7 +51,8 @@ summaryTab <- data.frame("insurer"=NaN,"coverage"=NaN,"period"=NaN,
 
 
 
-## Calcul with the function onePeriodStats for every period
+
+## Calcul with the function onePeriodStats for every period.
 
 for(wi in 1:length(periods)){
 
@@ -71,7 +81,7 @@ summaryTab=unique(summaryTab)
 save(summaryTab,file=("data/summaryTab_emp.RData"))
 
 
-summaryTab <- data.table(summaryTab) ## pq ça et tout ce qui s'en suit ??
+summaryTab <- data.table(summaryTab) ## pq ?a et tout ce qui s'en suit ??
 
 summaryTab <-rbind(summaryTab, summarybefore)
 summaryTab=unique(summaryTab)
@@ -212,7 +222,7 @@ logevolfinal2=data.frame(logevolfinal2)
 
 logevolfinal2=logevolfinal2[order(logevolfinal2$period),]
 
-save(logevolfinal2,file= paste0("./output_MR_all/Assurland_emprunteur/logevolfinal2_emp.RData")) # pq on fait pas ça sur logevolfinal ??
+save(logevolfinal2,file= paste0("./output_MR_all/Assurland_emprunteur/logevolfinal2_emp.RData")) # pq on fait pas ?a sur logevolfinal ??
 
 
 ## For checking : cumullog_graphs(logevolfinal2,formulaNames,TypesC,Types,PathNameCEBP)

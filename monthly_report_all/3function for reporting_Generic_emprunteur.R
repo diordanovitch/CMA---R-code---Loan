@@ -1,9 +1,9 @@
 
-######### function for reporting###################### 
+### Function for reporting ###
 
 
-### get weeks preceding a date. #########
-#It allow the exclusion of the most recent in the report 
+### getWeekActu ###
+## Gives the period in the format Y--M-- corresponding to 'prev" weeks before 'date', use to exclude too ancient periods.
  
 getWeekActu <-function(date,prev)
 {
@@ -23,8 +23,8 @@ getWeekActu <-function(date,prev)
 }
 
 
-################ previous month#####################
-# Gives the previous month in the format Y--M--
+### previous month ###
+## Gives the previous month of 'dt' in the period format.
 
 pm <- function(dt)
 {
@@ -46,10 +46,10 @@ pm <- function(dt)
 
 
 
-#########function for ranking
-## by month
+### genrankovermonths ### 
+## Function for ranking over months.
 
-# Parameters: data = prankd, AnalysedCompetitor = agdentity, Title of analysis = agdentitysn, Xaxis = Period (could be other variable, such as age)
+# Parameters: data = prankd, AnalysedCompetitor = agdentity, Title of analysis = agdentitysn, Xaxis = Period (could be other variable, such as age).
 genrankovermonths = function (prankd,agdentity,agdentitysn,coventity, Period = "yearmonth") {
   
   prankd$yearmonth <- prankd[,Period]
@@ -100,7 +100,11 @@ genrankovermonths = function (prankd,agdentity,agdentitysn,coventity, Period = "
 }
 
 
-###function one Period stats for cacul all infos. Very important, allow to output all stats for cumulated evolution, for...
+
+
+### one Period stats ### 
+## Very important, allow to output all stats for cumulated evolution, for...
+
 onePeriodStats <- function(res,w1,w2) {
   weeksLoc <- c(w1,w2)
   
