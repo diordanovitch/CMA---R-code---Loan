@@ -1,54 +1,78 @@
-frdata <- read.csv(file=crawling_file, header=TRUE, sep=";")
+## We import the last crawling
 
-
-## We remove useless columns and rearrange them. We delete also the rows with no insurer.And we change some column names.
-
-frdata_actual = frdata[,c(1,2,4,5,6,7,14,15,16,8)]
-frdata_actual = subset(frdata_actual, frdata_actual[,3]!= "NO_INSURER")
-names(frdata_actual)[names(frdata_actual)=="prix"] <- "price"
-names(frdata_actual)[names(frdata_actual)=="date_extraction"] <- "date_aspiration"
+crawling_new <- read.csv(file="./output_MR_all/Assurland_Loan/ASSURLAND_LOAN_prices_March.csv", header=TRUE, sep=";")
 
 
 
-frdata_actual$fees[frdata_actual$fees=='Gratuits'| frdata_actual$fees=='Gratuits\n'] <- 0
-frdata_actual$price <- as.numeric(as.vector(frdata_actual$price))
-frdata_actual$fees <- as.numeric(as.vector(frdata_actual$fees))
-frdata_actual$priceYCfees <- frdata_actual$price + frdata_actual$fees
-frdata_actual <- frdata_actual[c(1,2,3,4,5,10,6,7,8,9,11)]
+
+## First small transformations
+
+
+crawling_new = crawling_new[,c(1,2,4,5,6,7,14,15,16,8)]
+
+crawling_new = subset(crawling_new, crawling_new[,3]!= "NO_INSURER")
+
+crawling_new$fees <- gsub("[\r\n]", "", crawling_new$fees)
+
+crawling_new$fees[as.character(crawling_new$fees)=='Gratuits'] <- 0
+
+names(crawling_new)[names(crawling_new)=="prix"] <- "price"
+
+names(crawling_new)[names(crawling_new)=="date_extraction"] <- "date_aspiration"
+
+
+
+## We create a new column price+fees
+
+crawling_new$price <- as.numeric(crawling_new$price)
+crawling_new$fees <- as.numeric(crawling_new$fees)
+crawling_new$priceYCfees <- crawling_new$price + crawling_new$fees
+
+
+
+## Re-arrangement of columns
+
+crawling_new <- crawling_new[c(1,2,3,4,5,10,6,7,8,9,11)]
+
+
+
+## We save this new table
+
+save(crawling_new,file=("./output_MR_all/Assurland_Loan/test_emp.RData"))
 
 
 
 
 ## Define period and yearmonth
 
-frdata_actual$period <- paste( "Y",substr(frdata_actual$year,3,4), "W",formatC(frdata_actual$week,width=2, flag="0") , sep = "")
-frdata_actual$yearmonth <- paste( "Y",substr(frdata_actual$year,3,4), "M",formatC(frdata_actual$month,width=2, flag="0") , sep = "")
-
-
-#We remove useless columns
-
-frdata_actual <- subset(frdata_actual, select = -c(year,month,week,campaignID,fees))
-
-## We remove duplicates
-
-frdata_actual=frdata_actual[!duplicated(frdata_actual[c("profilID","insurer","coverage","period","yearmonth","price")]),]
+crawling_new$period <- paste( "Y",substr(crawling_new$year,3,4), "W",formatC(crawling_new$week,width=2, flag="0") , sep = "")
+crawling_new$yearmonth <- paste( "Y",substr(crawling_new$year,3,4), "M",formatC(crawling_new$month,width=2, flag="0") , sep = "")
 
 
 
+## Remove useless columns
+
+crawling_new <- subset(crawling_new, select = -c(year,month,week,campaignID,fees))
+
+crawling_new=crawling_new[!duplicated(crawling_new[c("profilID","insurer","coverage","period","yearmonth","price")]),]
 
 
-## We define scopes of covers and insurers. And filter the data on them.
+
+
+
+
+### Define scopes of Insurers and covers
 
 ## Covers
 
 covfr = c("Formule Optimum","Minimum")
 
-
-frdata_actual=frdata_actual[frdata_actual$coverage%in%covfr,]
-
+crawling_new=crawling_new[crawling_new$coverage%in%covfr,]
 
 
-## Insurers
+
+
+## Scopes of insurer: can change according to AL report or LL report.
 
 MUTUELLEPlayers <- c("MAAF Assurances")
 
@@ -61,13 +85,14 @@ ALTERNATIFSPlayers <- c("AFI-ESCA","ALPTIS","AsCourtage","CSF Assurances","HODEV
 All<-c("MAAF Assurances","Cardif","Groupe AVIVA", "AXA", "SIMPL'ASSUR","Groupe AXA","AFI-ESCA","ALPTIS","AsCourtage","CSF Assurances","HODEVA","Zen'up")
 
 
-frdata_actual <- frdata_actual[frdata_actual$insurer %in% All,]
+
+## Filter on the selected scope  
+
+crawling_new <- crawling_new[crawling_new$insurer %in% All,]
 
 
 
-## Final database.
-
-New_Table <- frdata_actual
+New_Table <- crawling_new
 
 
 

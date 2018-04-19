@@ -1,16 +1,16 @@
 Source = "MONTHLY"
 
 
-lp = "Y17W25"     # lastperiod, from where we want to update
-weekormonth = 20
+lp = "Y17W46"     # lastperiod, from where we want to update
+weekormonth = 46
 year = 2017
 
-Report = "Assurland_Loan"
+Report = "Assurland_Loan" # new
 
-crawling_file = "Crawling data/Assurland_Loan_prices_November.csv"
+crawling_file = "Crawling data/Assurland_Loan_prices_November.csv" # new
 
 
-source("updateTable_emprunteur.R")
+source("./monthly_report_all/updateTable_emprunteur.R")
 
 
 

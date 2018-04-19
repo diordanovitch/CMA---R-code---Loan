@@ -1,41 +1,58 @@
+## We fix period parameters.
+
+
 lastupdateperiod <-lp
 lastupdateperiod = substr(lastupdateperiod,5,6)
 
 
 Year <-year 
 Week <-weekormonth
+
+
   
 
-  
 
-source("2Libraries_emprunteur.R")
-source("3function for reporting_Generic_emprunteur.R")
-source("4Directories_emprunteur.R")
+## We run the others R files  
+
+source("./monthly_report_all/2Libraries_emprunteur.R")
+source("./monthly_report_all/3function for reporting_Generic_emprunteur.R") 
+source("./monthly_report_all/4Directories_emprunteur.R") # verify use
+
+
+source(file = "./monthly_report_all/Data_process_Emprunteur.R")
 
 
 
+## We fix time parameters.
 
 moiactu=strftime(as.Date(Sys.Date(),format="%Y-%m-%d"),format="Y%yM%m")   
 moiactu_1=pm(moiactu) 
 
 
-
 weekactu=getWeekActu(Sys.Date(),3)
 
 
-source(file = "Data_process_Emprunteur.R")
+
+## We save New_Table, which is the cleaning new crawling.
+
+New_Table$Segment <- "Global"
+save(New_Table, file = "./output_MR_all/Assurland_Loan/New_Table_Assurland_emp.RData")
 
 
 
-save(New_Table, file = "Crawling data/Assurland_Loan_prices_November_NEW_TABLE.RData")
 
+
+ForceUpdate = T #If force update = T, periods already present are removed and replaced by new imported ones. ?????????????
 
 
 
 
 ## Now we merge the database with the previous crawling (if we want to import old datasets -> source(6.addtopreviousdataset.R)).
 
-crawling_old <- read.csv(file="Crawling data/Assurland_Loan_prices_June.csv", header=TRUE, sep=";")
+#crawling_old <- read.csv(file="Crawling data/Assurland_Loan_prices_June.csv", header=TRUE, sep=";")
+
+crawling_old <- get(load(file="./output_MR_all/Assurland_Loan/data_Assurland_emp.RData"))
+
 
 crawling_old <- crawling_old[!crawling_old$period %in% unique(as.character(New_Table$period)),!colnames(crawling_old) %in% c("type","id","formula","profilid")]
 
@@ -48,9 +65,13 @@ crawling_all <- crawling_all[!duplicated(crawling_all[,c("profilID","period","ye
 
 
 
-if(Report == "Assurland_Report"){
+if(Report == "Assurland_Loan"){
   crawling_all$Segment <- "Global"
-  save(crawling_all, file = "Crawling data/Assurland_Loan_prices_MERGED.RData")
+  save(crawling_all, file = "./output_MR_all/Assurland_Loan/data_Assurland_emp.RData")
+  
+  
+  
+## Following lines are normally usless for emprunteur process.  
   
 }else if(Report == "LeLynx_Report"){
   crawling_all$period=ifelse(crawling_all$period=="Y16W02_NewMRP", "Y16W02",crawling_all$period)
