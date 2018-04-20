@@ -54,12 +54,12 @@ summaryTab <- data.frame("insurer"=NaN,"coverage"=NaN,"period"=NaN,
 
 for(wi in 1:length(periods)){
 
-  
   w1 <- periods[wi]
   w2 <- periods[wi+1]
   summaryTab <- rbind(summaryTab,onePeriodStats(res,w1,w2))
-  summaryTab <- summaryTab[-1,] # new
 }
+
+summaryTab <- summaryTab[-1,] # new
 
 
 ##  We process the summary tab. 
