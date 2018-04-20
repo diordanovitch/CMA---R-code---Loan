@@ -25,8 +25,8 @@ All<-c("MAAF Assurances","Cardif","Groupe AVIVA", "AXA", "SIMPL'ASSUR","Groupe A
 
 
 
-Types <- c("CLASSIQUE","MUTUELLE","BANCASSUREUR","RESIDUAL")  # For spain: LC = "Low Cost", For Italy: only Direct
-# TypesC <- data.frame(types = Types,typesComplete = c("CLASSIQUE","MUTUELLE","BANCASSUREUR", "RESIDUAL"))
+Types <- c("CLASSIQUE","MUTUELLE","BANCASSUREUR","ALTERNATIFS")  # For spain: LC = "Low Cost", For Italy: only Direct
+TypesC <- data.frame(types = Types,typesComplete = c("CLASSIQUE","MUTUELLE","BANCASSUREUR", "ALTERNATIFS"))
 
 
 

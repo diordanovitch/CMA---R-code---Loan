@@ -60,35 +60,39 @@ for(wi in 1:length(periods)){
   w1 <- periods[wi]
   w2 <- periods[wi+1]
   summaryTab <- rbind(summaryTab,onePeriodStats(res,w1,w2))
-  
+  summaryTab <- summaryTab[-1,] # new
 }
 
 
+##  We process the summary tab. 
 
 summaryTab <- na.omit(summaryTab)
 summaryTab$insurer <- as.factor(summaryTab$insurer)
 summaryTab$coverage <- as.factor(summaryTab$coverage)
 summaryTab$period <- as.factor(summaryTab$period)
-summaryTab$Playertype <- as.factor(summaryTab$PlayerType)
-
+summaryTab$PlayerType <- as.factor(summaryTab$PlayerType)
 summaryTab=unique(summaryTab)
 
 
 
-## Save the data and load it
+## We save the data and load it.
 
 
-save(summaryTab,file=("data/summaryTab_emp.RData"))
+save(summaryTab,file=("./output_MR_all/Assurland_Loan/summaryTab_emp.RData"))
 
 
-summaryTab <- data.table(summaryTab) ## pq ?a et tout ce qui s'en suit ??
+
+
+## ?
+
+summaryTab <- data.table(summaryTab) 
 
 summaryTab <-rbind(summaryTab, summarybefore)
 summaryTab=unique(summaryTab)
 
-#display_graphs(summaryTab,formulaNames,TypesC,Types,PathNameDE)
+# display_graphs(summaryTab,formulaNames,TypesC,Types,PathNameDE)
  
-#average_graphs(summaryTab,formulaNames,TypesC,Types,PathNameAPE)
+# average_graphs(summaryTab,formulaNames,TypesC,Types,PathNameAPE)
   
 
 

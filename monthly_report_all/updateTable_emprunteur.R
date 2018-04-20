@@ -17,7 +17,7 @@ Week <-weekormonth
 source("./monthly_report_all/2Libraries_emprunteur.R")
 source("./monthly_report_all/3function for reporting_Generic_emprunteur.R") 
 source("./monthly_report_all/4Directories_emprunteur.R") # verify use
-
+source("./monthly_report_all/7Parameters_emprunteur.R") #• new
 
 source(file = "./monthly_report_all/Data_process_Emprunteur.R")
 
