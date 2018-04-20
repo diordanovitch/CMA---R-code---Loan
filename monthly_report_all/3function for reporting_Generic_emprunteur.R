@@ -128,15 +128,15 @@ onePeriodStats <- function(res,w1,w2) {
       groupLoc <- get(s)
       
       
-      # extraction of the local DB
-      resloc0 <- res[which(res$period %in% weeksLoc),]
-      resloc1 <- resloc0[which(resloc0$coverage %in% formulaMapping[formulaMapping[,1]==formulaLoc,2]),]
-      resloc2 <- resloc1[which(resloc1$insurer%in% groupLoc),]
+      # Extraction of local DB.
+      resloc0 <- res[which(res$period %in% weeksLoc),] # Period
+      resloc1 <- resloc0[which(resloc0$coverage %in% formulaMapping[formulaMapping[,1]==formulaLoc,2]),] # Coverage
+      resloc2 <- resloc1[which(resloc1$insurer%in% groupLoc),] # Insurer group
       resloc <- resloc2
-      resW1 <- resloc[which(resloc$period %in% weeksLoc[1]),]
-      resW2 <- resloc[which(resloc$period %in% weeksLoc[2]),]
+      resW1 <- resloc[which(resloc$period %in% weeksLoc[1]),] # Period 1
+      resW2 <- resloc[which(resloc$period %in% weeksLoc[2]),] # Period 2
       
-      # initialization of quantites to be computed
+      # Initialization of quantites to be computed.
       nLoc <- length(groupLoc)+1
       nbProfiles <- matrix(0,nLoc,4)
       nbProfiles[1,1] <- length(unique(resW1$profilID))
@@ -145,47 +145,49 @@ onePeriodStats <- function(res,w1,w2) {
       byProfile <- matrix(0,nLoc,2)
       
       for (i in 1:length(groupLoc)) {
-        # keep only data specific to the assureur company under study
+     
+        # We extract DB corresponding to the assureur company under study.
         idxW1 <- which(resW1$insurer == groupLoc[i],arr.ind=T)
         idxW2 <- which(resW2$insurer == groupLoc[i],arr.ind=T) 
         resW1loc <- resW1[idxW1,]; resW2loc <- resW2[idxW2,]
         
-        # modify 
+        # Keeping only 3 columns we need. 
         resW1loc <- subset(resW1loc,select=c(period,profilID,price))
         resW2loc <- subset(resW2loc,select=c(period,profilID,price))
         
-        # average on same profilID queries (if so)
+        # Average of price on same profilID queries (if there are some lines with same profilID).
         resW1loc$price<- ave(resW1loc$price,resW1loc$profilID)
         resW2loc$price <- ave(resW2loc$price,resW2loc$profilID)
         
-        
+        # Now we remove duplicates (if they exist).
         resW1loc <- unique(resW1loc)
         resW2loc <- unique(resW2loc)
         
-        # build usefull tab for computations
+        # Build usefull tab for computations.
         r1merge <- resW1loc
         r2merge <- resW2loc
         colnames(r1merge) <- c("periode1","profilID","price1")
         colnames(r2merge) <- c("periode2","profilID","price2")
-        usefullTab <- merge(r1merge,r2merge)
-        usefullTab$diffP <- usefullTab$price2/usefullTab$price1-1
+        usefullTab <- merge(r1merge,r2merge) # Table with price for period 1 and period 2, for every ID.
+        usefullTab$diffP <- usefullTab$price2/usefullTab$price1-1 # Give the variation of price.
 
-        # compute statistics
         
-        byProfile[i+1,1] <- round(100*mean(usefullTab$diffP),2)
-        byProfile[i+1,2] <- round(100*(sum(as.numeric(abs(usefullTab$diffP)>0))/length(usefullTab$profilID)),2)
+        # compute statistics.
+        
+        byProfile[i+1,1] <- round(100*mean(usefullTab$diffP),2) # Mean of total variation. 
+        byProfile[i+1,2] <- round(100*(sum(as.numeric(abs(usefullTab$diffP)>0))/length(usefullTab$profilID)),2) # Mean of total variation. 
         nbProfiles[i+1,1] <- length(resW1loc$profilID)
         nbProfiles[i+1,2] <- length(resW2loc$profilID)
         avgPremium[i+1,1] <- round(mean(resW1loc$price),0)
         avgPremium[i+1,2] <- round(mean(resW2loc$price),0)
         
         
-        ## compute here relative display rate and rate rank among the groupLoc competitors
-        
       }
-      nbProfiles[,3] <- round(100*(nbProfiles[,2]/nbProfiles[1,2]),2)
-      nbProfiles[,4] <- round(100*(nbProfiles[,2]/nbProfiles[,1]-1),2)
-      avgPremium[,3] <- round(100*((avgPremium[,2]/avgPremium[,1])-1),2)
+      
+      # We compute now our final metrics, for one insurer.
+      nbProfiles[,3] <- round(100*(nbProfiles[,2]/nbProfiles[1,2]),2) # Proportion of display (only for last period).
+      nbProfiles[,4] <- round(100*(nbProfiles[,2]/nbProfiles[,1]-1),2)  # Variation of nb of profiles between period 1 & 2.
+      avgPremium[,3] <- round(100*((avgPremium[,2]/avgPremium[,1])-1),2) # Variation of price between period 1 & 2.
       
       rnames <- t(cbind("Total",t(groupLoc)))
       tabOut <- data.frame("AvgEvolByProfile"=byProfile[,1],
@@ -545,7 +547,8 @@ cumullog_graphs=function(data,forNames,Typc,Typ,path){
 }
 
 
-############## log cumul evolution##############
+### OnePeriodLog ###
+
 onePeriodlog <- function(res,w1,w2) {
   weeksLoc <- c(w1,w2)
   Cumullogtable <- data.frame("profilID"=NaN,"insurer"=NaN,"coverage"=NaN,"period"=NaN,"LNEvolByProfile"=NaN)
@@ -560,7 +563,7 @@ onePeriodlog <- function(res,w1,w2) {
       s <- paste(typeLoc,"Players",sep="")
       groupLoc <- get(s)
       
-      # extraction of the local DB
+      # Extraction of local DB
       resloc0 <- res[which(res$period %in% weeksLoc),]
       resloc1 <- resloc0[which(resloc0$coverage %in% formulaMapping[formulaMapping[,1]==formulaLoc,2]),]
       resloc2 <- resloc1[which(resloc1$insurer%in% groupLoc),]
@@ -569,30 +572,31 @@ onePeriodlog <- function(res,w1,w2) {
       resW2 <- resloc[which(resloc$period %in% weeksLoc[2]),]
       
       for (i in 1:length(groupLoc)) {
-        # keep only data specific to the assureur company under study
+        # We extract DB corresponding to the assureur company under study.
         idxW1 <- which(resW1$insurer == groupLoc[i],arr.ind=T)
         idxW2 <- which(resW2$insurer == groupLoc[i],arr.ind=T) 
         resW1loc <- resW1[idxW1,]; resW2loc <- resW2[idxW2,]
-        # modify 
+        
+        # Keeping only 5 columns we need. 
         resW1loc <- subset(resW1loc,select=c(coverage,insurer,period,profilID,price))
         resW2loc <- subset(resW2loc,select=c(coverage,insurer,period,profilID,price))
         
-        # average on same profilID queries (if so)
+        # Average of price on same profilID queries (if there are some lines with same profilID).
         resW1loc$price<- ave(resW1loc$price,resW1loc$profilID)
         resW2loc$price <- ave(resW2loc$price,resW2loc$profilID)
         
-        
+        # Now we remove duplicates (if they exist).
         resW1loc <- unique(resW1loc)
         resW2loc <- unique(resW2loc)
         
-        # build usefull tab for computations
+        # Build usefull tab for computations.
         r1merge <- resW1loc
         r2merge <- resW2loc
         colnames(r1merge) <- c("coverage","insurer", "periode1","profilID","price1")
         colnames(r2merge) <- c("coverage","insurer","periode2","profilID","price2")
-        usefullTab <- merge(r1merge,r2merge)
+        usefullTab <- merge(r1merge,r2merge) # Table with price for period 1 and period 2, for every ID.
         
-        usefullTab$diffP <- log(usefullTab$price2/usefullTab$price1,base=exp(1))
+        usefullTab$diffP <- log(usefullTab$price2/usefullTab$price1,base=exp(1))  # Give the log variation of price.
         usefullTab=na.omit(usefullTab)
         
         temp <- usefullTab
@@ -615,7 +619,8 @@ onePeriodlog <- function(res,w1,w2) {
 }
 
 
-#####cumulated evolution function 
+### cumulated evolution log function ### 
+## Compute a cumulation line by line
 
 cumevollogFunc <- function(rs){
 

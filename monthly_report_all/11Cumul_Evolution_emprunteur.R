@@ -98,12 +98,11 @@ summaryTab=unique(summaryTab)
 
 
 
-###########################################################
-######### cumul evolution graphs for all periods###########
-###########################################################
 
-##calculate log variation between two periods in using  "onePeriodlog" function
-##### ADDED TO AVOID TOO much calculations
+### ? ###
+
+## Calculate log variation between two periods in using  "onePeriodlog" function.
+## ADDED TO AVOID TOO much calculations.
 
 
 
@@ -111,11 +110,6 @@ summaryCumulTab<- data.frame("profilID"=NaN,"insurer"=NaN,"coverage"=NaN,"period
 
 cl <- makeCluster(4)
 registerDoParallel(cl)
-
-
-
-## 1. Compute log period2/period1
-
 
 
 for(wi in 1:length(periods)){
@@ -159,6 +153,10 @@ check_bigvar=unique(check_bigvar)
 
 summaryCumulTab = summaryCumulTab_check[!summaryCumulTab_check$LNEvolByProfile=="check",]
 
+
+
+## We put the log variation on a 100 scale, and we apply some transformations to the DB.
+
 summaryCumulTab$LNEvolByProfile = as.numeric(summaryCumulTab$LNEvolByProfile)
 summaryCumulTab$LNEvolByProfile = round(100*summaryCumulTab$LNEvolByProfile)
 summaryCumulTab = na.omit(summaryCumulTab)
@@ -166,24 +164,37 @@ summaryCumulTab$insurer <- as.factor(summaryCumulTab$insurer)
 summaryCumulTab$coverage <- as.factor(summaryCumulTab$coverage)
 summaryCumulTab$period <- as.factor(summaryCumulTab$period)
 
-save(summaryCumulTab,file=paste0("data/summaryCumulTab_emp.RData"))
+## Finally we save the file.
+
+save(summaryCumulTab,file=paste0("./output_MR_all/Assurland_Loan/summaryCumulTab_emp.RData"))
+
+
 
 
 ## 2. cumule evol by profil
 
 ## Remove years before 2015 
-summaryCumulTab1=summaryCumulTab[grepl("Y15|Y16|Y17",summaryCumulTab$period),]
+
+for (y in c("Y15","Y16","Y17", "Y18")) {
+  summaryCumulTab1=summaryCumulTab[grepl(y,summaryCumulTab$period),]
+}
+
 summaryCumulTab1$period <- factor(summaryCumulTab1$period)
 
-## Compute Key and format dataframe as data table
+
+## Compute a key and format dataframe as data table.
 summaryCumulTab1$ind=paste(summaryCumulTab1$insurer,summaryCumulTab1$coverage,summaryCumulTab1$profilID)
 summaryCumulTab1 <- data.table(summaryCumulTab1)
 
-## Reorder
+
+## Reorder.
 summaryCumulTab1=summaryCumulTab1[order(summaryCumulTab1$ind,summaryCumulTab1$period),]
 
-## Compute cumul evoution 
+
+## Compute cumul evolution for same ind. 
+## For what ?? Cumullog here is no used, becayse there are no 2 lines with same combination.
 newcumul=summaryCumulTab1[  ,list(cumullog=cumevollogFunc(LNEvolByProfile)),by=list(ind,insurer,coverage,profilID)]
+
 
 ## Compute exponential
 newcumul$Exp=round(exp(newcumul$cumullog/100)-1,4)
@@ -200,18 +211,27 @@ JoinResult=subset(JoinResult,select=c(profilID,insurer,coverage,period,LNEvolByP
 JoinResult=unique(JoinResult)
 
 
-## ??
+## For each insurer/period/coverage, we compute the mean of the variation.
 
 logevolfinal <- data.table(JoinResult)
 logevolfinal <- logevolfinal[,list(mean=meanna(Exp)), by = c("coverage","period","insurer")]
 logevolfinal=unique(logevolfinal)
 
 
-## Save the final file and ??
+## Save the final file
 
-save(logevolfinal,file=paste0("data/logevolfinal_emp.RData"))
+save(logevolfinal,file=paste0("./output_MR_all/Assurland_Loan/logevolfinal_emp.RData")) # why save this
 
-plot_ly(x = summaryTab$insurer, y = summaryTab$AvgPremium, name = "Avg Premium by Players",type = "bar")
+
+
+
+
+
+# plot_ly(x = summaryTab$insurer, y = summaryTab$AvgPremium, name = "Avg Premium by Players",type = "bar")
+
+
+
+## Finally, we construct the final database with player type, and tha variation on a 100 scale.
 
 
 logevolfinal2 = logevolfinal
@@ -226,9 +246,11 @@ logevolfinal2=data.frame(logevolfinal2)
 
 logevolfinal2=logevolfinal2[order(logevolfinal2$period),]
 
-save(logevolfinal2,file= paste0("./output_MR_all/Assurland_emprunteur/logevolfinal2_emp.RData")) # pq on fait pas ?a sur logevolfinal ??
+save(logevolfinal2,file= ("./output_MR_all/Assurland_Loan/logevolfinal2_emp.RData")) 
 
 
-## For checking : cumullog_graphs(logevolfinal2,formulaNames,TypesC,Types,PathNameCEBP)
+
+
+# cumullog_graphs(logevolfinal2,formulaNames,TypesC,Types,PathNameCEBP)
 
 
