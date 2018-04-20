@@ -5,9 +5,7 @@
 frdata_cumul=crawling_all
 summarybefore <- NULL
 
-
 res=data.frame(frdata_cumul$period,frdata_cumul$price,frdata_cumul$insurer,frdata_cumul$profilID,frdata_cumul$coverage)
-# !!! pourquoi pas faire ?a direct via crawling_all, pq passer par une variable frdata_cumul ?
 
 
 ## We rename the columns
@@ -94,6 +92,9 @@ summaryTab=unique(summaryTab)
  
 # average_graphs(summaryTab,formulaNames,TypesC,Types,PathNameAPE)
   
+
+
+
 
 
 
@@ -207,6 +208,7 @@ meanna=function(x) {
 }
 
 ## Remove duplicated columns
+
 JoinResult=subset(JoinResult,select=c(profilID,insurer,coverage,period,LNEvolByProfile,cumullog,Exp))
 JoinResult=unique(JoinResult)
 
@@ -231,7 +233,7 @@ save(logevolfinal,file=paste0("./output_MR_all/Assurland_Loan/logevolfinal_emp.R
 
 
 
-## Finally, we construct the final database with player type, and tha variation on a 100 scale.
+## Finally, we construct the final database with player type, and we put the variation on a 100 scale.
 
 
 logevolfinal2 = logevolfinal
