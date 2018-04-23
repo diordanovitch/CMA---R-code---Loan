@@ -260,7 +260,8 @@ cumulindex <- function(rs){
 
 
 
-### function pour top 1 proportion by months and selected variable. Attention, not too much modalities!!!
+### Function to compute the ranking.
+
 top_propor_Generic <- function(tables,top = 1){
   
   
@@ -284,8 +285,8 @@ top_propor_Generic <- function(tables,top = 1){
       temp=na.omit(temp)
       temp$ct=1
       
-      temp[, cumsum:=lapply(.SD, sum), by = c("insurer","coverage","period","Segment"),.SDcols=c("ct")]
-      temp[, cumsum2:=lapply(.SD, sum), by = c("coverage","period","Segment"),.SDcols=c("ct")]
+      temp[, cumsum:=lapply(.SD, sum), by = c("insurer","coverage","period","Segment"),.SDcols=c("ct")] # Nb of rank 1 for one insurer during one period for selected coverage
+      temp[, cumsum2:=lapply(.SD, sum), by = c("coverage","period","Segment"),.SDcols=c("ct")] # Nb of rank 1 for all insurers during one period for selected coverage
       
       
       if(j==1)  {savefrdata=as.data.frame(temp)} else savefrdata=rbind(savefrdata,temp)
@@ -299,17 +300,19 @@ top_propor_Generic <- function(tables,top = 1){
 }
 
 
-### Output generic graphs
-top_Generic<- function(data,covfr, coveragenames = c("Top 1 Minimum","Top 1 Optimum"), TitleComplement = "All Players", PathComplement = "1st Ranking Proportion by month all"){
+### Top_Generic : Output graphs for ranking over months.
+
+top_Generic<- function(data,covfr, exclude_insurer, coveragenames = c("Top 1 Minimum","Top 1 Optimum"), TitleComplement = "All Players", PathComplement = "1st Ranking Proportion by month all"){
   
   if(length(covfr) != length(coveragenames)){stop("Parameter covfr and coveragenames must have the same length!")}
   
   data$proportion=data$cumsum/data$cumsum2
   data$proportion=round(data$proportion*100)
   
+  data = data[!data$insurer %in% exclude_insurer]
+  
   for(i in 1:length(covfr)){
     
-    # coveragenames=c("Top 1 MTPL","Top 1 Full Co.")
     coverageapping <- cbind(coveragenames,covfr)
     
     datatemp=data[data$coverage==covfr[i],]
@@ -322,20 +325,20 @@ top_Generic<- function(data,covfr, coveragenames = c("Top 1 Minimum","Top 1 Opti
     
     datatemp =datatemp[with(datatemp, order(coverage,desc(period),as.character(insurer),as.character(Segment))), ]
     
-    datatemp=ddply(datatemp, .(coverage,period,Segment), mutate,csum = cumsum(proportion)-proportion/2)
+    datatemp <- ddply(datatemp, .(coverage,period,Segment), mutate, csum = cumsum(proportion)-proportion/2)
     
     datatemp =datatemp[with(datatemp, order(desc(insurer),proportion,coverage,period,Segment,csum)), ]
     
     datatemp$insurer= factor(datatemp$insurer,levels=sort(levels(datatemp$insurer), TRUE))
+    
     print(ggplot(datatemp,aes(x = period, y = proportion, fill = insurer,order=desc(insurer))) +
       theme(legend.key.size = unit(1, "cm"))+
       geom_bar(position = "fill",stat="identity") + facet_grid(.~Segment)+
       scale_fill_manual(values = colorpalette,name=coverageapping[i])+ scale_y_continuous(labels = percent_format()) + wtl+
       ggtitle(paste(paste(coveragenames[i],"Ranking Proportion by Month", TitleComplement,sep=" "),sep="\n\n"))+
-      geom_text(aes(y = csum/100, label = paste(proportion,"%",sep="")), size =7, hjust = 0.5, vjust = 0,,stat="identity")+xlab("Month") + ylab("")
-    )
+      geom_text(aes(y = csum/100, label = paste(proportion,"%",sep="")), size =7, hjust = 0.5, vjust = 0,stat="identity")+
+        xlab("Period") + ylab(""))
     ggsave(paste(PathNamerank,file=paste(PathComplement,"-",covfr[i],".png",sep=""),sep="/"),width=20,height=14,dpi=100)
-    
     
   }
 }
