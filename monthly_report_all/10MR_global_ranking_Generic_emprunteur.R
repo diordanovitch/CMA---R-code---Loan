@@ -23,13 +23,13 @@ frdatatemp$Segment <- 'Global'
 frdatatemp$period<-NULL
 frdatatemp$date_aspiration<-NULL
 frdatatemp=data.frame(frdatatemp$profilID,frdatatemp$insurer,frdatatemp$coverage,frdatatemp$price,frdatatemp$yearmonth, frdatatemp$Segment)
-names(frdatatemp)=c("profilID","insurer","coverage","prix","period","Segment")
+names(frdatatemp)=c("profilID","insurer","coverage","price","period","Segment")
 
 
 ## Compute the mean by month for the price for every profilID (in case there are several lines for one ProfilId).
 
-frdatatemp=aggregate(frdatatemp$prix ~ frdatatemp$period+frdatatemp$profilID+frdatatemp$insurer+frdatatemp$coverage+frdatatemp$Segment, FUN=mean)
-names(frdatatemp)=c("period","profilID","insurer","coverage","Segment","prix")
+frdatatemp=aggregate(frdatatemp$price ~ frdatatemp$period+frdatatemp$profilID+frdatatemp$insurer+frdatatemp$coverage+frdatatemp$Segment, FUN=mean)
+names(frdatatemp)=c("period","profilID","insurer","coverage","Segment","price")
 
 
 ## We check that there are only known insurers in the DB.  

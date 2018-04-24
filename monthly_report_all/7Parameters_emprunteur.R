@@ -34,8 +34,8 @@ TypesC <- data.frame(types = Types,typesComplete = c("CLASSIQUE","MUTUELLE","BAN
 
 covfr = c("Formule Optimum","Minimum")
 coveragenames = c("Top 1 Formule Optimum","Top 1 Minimum")
-formulaNames <- covfr #c("Formule Optimum","Minimum")
-formulaTypes <- coveragenames #c("Formule Optimum","Minimum")
+formulaNames <- covfr 
+formulaTypes <- coveragenames 
 formulaMapping <- cbind(formulaNames,formulaNames)
 
 

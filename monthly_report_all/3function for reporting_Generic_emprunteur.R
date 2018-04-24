@@ -1,5 +1,5 @@
 
-### Function for reporting ###
+####### Functions for reporting #######
 
 
 ### getWeekActu ###
@@ -212,343 +212,6 @@ onePeriodStats <- function(res,w1,w2) {
 }
 
 
-####function for calcul variation between two periods### TODO: find where it is used.
-evoloneperiod <- function(sum,p1,p2) {
-  
-  sum1=sum[sum$period==p1,]
-  sum2=sum[sum$period==p2,]
-  sumfinal=merge(sum1,sum2, by=("insurer"))
-  
-  sumfinal$var= sumfinal$cumevol.y- sumfinal$cumevol.x
-  sumfinal=data.frame(sumfinal$insurer,sumfinal$var)
-  
-}
-
-
-######## cumul evolution function######
-####function for calcul variation###
-
-#TODO: find where it is used
-addplus <- function(var) {
-  ifelse(var>0, paste("+", as.numeric(round(var,00)), sep=""),round(var,00))
-}
-
-#TODO: find where it is used
-cumevolFunc <- function(rs){
-  rs = rs/100
-  cumrs = rs
-  cumrs[1] = 100
-  
-  for (lm in 1:(length(cumrs))){
-    cumrs[lm+1] = cumrs[lm]*(rs[lm]+1)
-  }
-  
-  cumrs = cumrs-100
-  cumrs = cumrs[2:length(cumrs)]
-  cumrs
-}
-
-
-#TODO: find where it is used
-cumulindex <- function(rs){
-       cumrs=rs
-       cumrs[1] = 100
-  for (lm in 2:(length(rs))){
-    cumrs[lm+1] = (cumrs[lm]+rs(lm+1))
-  }
-}
-
-
-
-### Function to compute the ranking.
-
-top_propor_Generic <- function(tables,top = 1){
-  
-  
-  ListFormulas=c(as.character(unique(tables$coverage)))
-  
-  ListPeriod=c(as.character(unique(tables$period)))
-  
-  for(i in 1:length(ListFormulas)){
-    LocFomulas=ListFormulas[i]
-    
-    for (j in 1: length(ListPeriod)){
-      LocPeriod=ListPeriod[j]
-      
-      temp=tables[tables$period==LocPeriod,]
-      temp=temp[temp$coverage==LocFomulas,]
-      
-      temp=as.data.table(temp)
-      temp[,rank:=rank(prix,ties.method="first"),by=c("profilID","coverage","period","Segment")]
-      r= 1:top 
-      temp=temp[temp$rank%in%r,]
-      temp=na.omit(temp)
-      temp$ct=1
-      
-      temp[, cumsum:=lapply(.SD, sum), by = c("insurer","coverage","period","Segment"),.SDcols=c("ct")] # Nb of rank 1 for one insurer during one period for selected coverage
-      temp[, cumsum2:=lapply(.SD, sum), by = c("coverage","period","Segment"),.SDcols=c("ct")] # Nb of rank 1 for all insurers during one period for selected coverage
-      
-      
-      if(j==1)  {savefrdata=as.data.frame(temp)} else savefrdata=rbind(savefrdata,temp)
-      rm(temp)
-      
-    }
-    if(i==1)  {savefrdataTotal=as.data.frame(savefrdata)} else savefrdataTotal=rbind(savefrdataTotal,savefrdata)
-    rm(savefrdata)
-  }
-  return(savefrdataTotal)
-}
-
-
-### Top_Generic : Output graphs for ranking over months.
-
-top_Generic<- function(data,covfr, exclude_insurer, coveragenames = c("Top 1 Minimum","Top 1 Optimum"), TitleComplement = "All Players", PathComplement = "1st Ranking Proportion by month all"){
-  
-  if(length(covfr) != length(coveragenames)){stop("Parameter covfr and coveragenames must have the same length!")}
-  
-  data$proportion=data$cumsum/data$cumsum2
-  data$proportion=round(data$proportion*100)
-  
-  data = data[!data$insurer %in% exclude_insurer]
-  
-  for(i in 1:length(covfr)){
-    
-    coverageapping <- cbind(coveragenames,covfr)
-    
-    datatemp=data[data$coverage==covfr[i],]
-    
-    datatemp=data.frame(datatemp$insurer,datatemp$coverage,datatemp$period,datatemp$proportion,datatemp$Segment)
-    
-    names(datatemp)=c("insurer","coverage","period","proportion","Segment")
-    
-    datatemp=datatemp[!duplicated(datatemp[c("coverage","period","insurer","proportion","Segment")]),]
-    
-    datatemp =datatemp[with(datatemp, order(coverage,desc(period),as.character(insurer),as.character(Segment))), ]
-    
-    datatemp <- ddply(datatemp, .(coverage,period,Segment), mutate, csum = cumsum(proportion)-proportion/2)
-    
-    datatemp =datatemp[with(datatemp, order(desc(insurer),proportion,coverage,period,Segment,csum)), ]
-    
-    datatemp$insurer= factor(datatemp$insurer,levels=sort(levels(datatemp$insurer), TRUE))
-    
-    print(ggplot(datatemp,aes(x = period, y = proportion, fill = insurer,order=desc(insurer))) +
-      theme(legend.key.size = unit(1, "cm"))+
-      geom_bar(position = "fill",stat="identity") + facet_grid(.~Segment)+
-      scale_fill_manual(values = colorpalette,name=coverageapping[i])+ scale_y_continuous(labels = percent_format()) + wtl+
-      ggtitle(paste(paste(coveragenames[i],"Ranking Proportion by Month", TitleComplement,sep=" "),sep="\n\n"))+
-      geom_text(aes(y = csum/100, label = paste(proportion,"%",sep="")), size =7, hjust = 0.5, vjust = 0,stat="identity")+
-        xlab("Period") + ylab(""))
-    ggsave(paste(PathNamerank,file=paste(PathComplement,"-",covfr[i],".png",sep=""),sep="/"),width=20,height=14,dpi=100)
-    
-  }
-}
-
-###################### output graphs for checks#######################
-
-#### function cumul graph#####
-
-cumul_graphs=function(data,forNames,Typc,Typ,path){
-  
-  # write those tables for calculing the cumul price evolution 
-  for (formulaLoc in forNames){
-    
-    for (typeLoc in Typ){
-      s <- paste(typeLoc,"Players",sep="")
-      s1 <- Typc$typesComplete[which(Typc$types == typeLoc)]
-      groupLoc <- get(s)
-      atx <- which(data$insurer %in% get(s) & data$coverage == formulaLoc)
-      df <- data[atx,]
-      result = data.frame(insurer = NaN,period = NaN, cumevol = NaN)
-      for (kl in 1:length(groupLoc)) {
-        dfperiodeLoc = df$period[which(df$insurer == groupLoc[kl])]
-        tempp = length(dfperiodeLoc)
-        repn = rep(groupLoc[kl],tempp)
-        repw = dfperiodeLoc
-        evolLoc = df$AvgEvolByProfile[which(df$insurer == groupLoc[kl])]
-        if (length(evolLoc) == 0) {next}
-        evolLocCum = cumevolFunc(evolLoc)
-        resultloc = data.frame(insurer= repn, period=repw,cumevol=evolLocCum)
-        result = rbind(result,resultloc)
-        
-        
-        result = na.omit(result)
-        DF_n = merge(df,result,by=intersect(names(df),names(result)))
-        gname <- paste(s,formulaLoc,sep="_")
-        
-      }
-      
-      filename <- paste(s, formulaLoc,".csv", sep="")
-      write.table(DF_n, file=paste("./output_MR_all",filename,sep="/"), col.names=TRUE,row.names=FALSE,sep=";",quote=FALSE)
-      
-      # cum evol graph
-      print(DF_n)
-      
-      print(ggplot(DF_n,aes(period,cumevol,group=insurer),ymin=200)+
-              geom_line(aes(colour=insurer),size=1.25)+
-              xlab("Week")+ylab("Cumulated Average Evolution")+
-              ggtitle(paste(paste(formulaLoc,"MRP sample - Cumulated Evolution"," "),s1,sep="\n\n"))+
-              theme(plot.title = element_text(lineheight=.6, face="bold"))+
-              scale_x_discrete("Week", labels = levels(DF_n$period))+
-              #scale_y_continuous(limits = c(-10, 30))+
-              theme(axis.text.x=element_text(angle=90))+
-              labs(colour="Company",linetype="Company",shape="Company") +
-              scale_colour_manual(values = colorpalette))
-      
-      #save the graph
-      ggsave(paste(path,paste(paste("CUMEVOL",s,formulaLoc,sep="_"),"png",sep="."),sep="/"),
-             scale = .8, width = 20,height = 10, units = "in") 
-      
-      
-    }
-  } 
-}
-
-
-#####average evolution function 
-
-average_graphs=function(data,forNames,Typc,Typ,path){
-  
-  # write those tables for calculing the cumul price evolution 
-  for (formulaLoc in forNames){
-    
-    for (typeLoc in Typ){
-      s <- paste(typeLoc,"Players",sep="")
-      s1 <- Typc$typesComplete[which(Typc$types == typeLoc)]
-      groupLoc <- get(s)
-      atx <- which(data$insurer %in% get(s) & data$coverage == formulaLoc)
-      df <- data[atx,]
-      result = data.frame(insurer = NaN,period = NaN, cumevol = NaN)
-      for (kl in 1:length(groupLoc)) {
-        dfperiodeLoc = df$period[which(df$insurer == groupLoc[kl])]
-        tempp = length(dfperiodeLoc)
-        repn = rep(groupLoc[kl],tempp)
-        repw = dfperiodeLoc
-        evolLoc = df$AvgEvolByProfile[which(df$insurer == groupLoc[kl])]
-        if (length(evolLoc) == 0) {next}
-        evolLocCum = cumevolFunc(evolLoc)
-        resultloc = data.frame(insurer= repn, period=repw,cumevol=evolLocCum)
-        result = rbind(result,resultloc)
-        
-        
-        result = na.omit(result)
-        df <- data.frame(df)
-        DF_n = merge(df,result,by=intersect(names(df),names(result)))
-        gname <- paste(s,formulaLoc,sep="_")
-        
-      }
-      
-      print(DF_n)
-      print(ggplot(DF_n,aes(x=period,y=AvgPremium,group=insurer),ymin=200,height=500, width=800)+
-              geom_line(aes(x=period,y=AvgPremium, colour = insurer,group=insurer),size=2,alpha=1)+
-              xlab("Week")+ylab("Average Premium")+
-              ggtitle(paste(paste(formulaLoc,"MRP sample - Average Premium"," "),sep=""))+
-              theme(plot.title = element_text(lineheight=.6, face="bold"))+
-              scale_fill_manual(values = colorpalette,name="insurer")+
-              theme(axis.text.x=element_text(angle=80))+
-              labs(colour="Company",linetype="Company",shape="Company")+
-              scale_colour_manual(values = colorpalette))
-      
-      ggsave(paste(path, paste(paste("AVGPREMIUM",s,formulaLoc,sep="_"),"png",sep="."),sep="/"),
-             scale = .8, width = 20,height = 10, units = "in")
-      
-    }
-  } 
-}
-
-#####display function############ 
-
-display_graphs=function(data,forNames,Typc,Typ,path){
-  
-
-  # write those tables for calculing the cumul price evolution 
-  for (formulaLoc in forNames){
-    
-    for (typeLoc in Typ){
-  
-      
-      s <- paste(typeLoc,"Players",sep="")
-      s1 <- Typc$typesComplete[which(Typc$types == typeLoc)]
-      groupLoc <- get(s)
-      atx <- which(data$insurer %in% get(s) & data$coverage == formulaLoc)
-      df <- data[atx,]
-      result = data.frame(insurer = NaN,period = NaN, cumevol = NaN)
-      for (kl in 1:length(groupLoc)) {
-        dfperiodeLoc = df$period[which(df$insurer == groupLoc[kl])]
-        tempp = length(dfperiodeLoc)
-        repn = rep(groupLoc[kl],tempp)
-        repw = dfperiodeLoc
-        evolLoc = df$AvgEvolByProfile[which(df$insurer == groupLoc[kl])]
-        if (length(evolLoc) == 0) {next}
-        evolLocCum = cumevolFunc(evolLoc)
-        resultloc = data.frame(insurer= repn, period=repw,cumevol=evolLocCum)
-        result = rbind(result,resultloc)
-        
-        
-        result = na.omit(result)
-        df <- data.frame(df)
-        DF_n = merge(df,result,by=intersect(names(df),names(result))) # this line can be the cause of a problem: vecseq...
-        gname <- paste(s,formulaLoc,sep="_")
-        
-      }
-      
-      DF_n$numeric_periode<-as.numeric(as.factor(DF_n$period))
-      last_week=max(DF_n$numeric_periode)
-      weekListLocHalfYear = c(round(last_week/2,0):last_week)
-      weekList1Year =c(1:last_week)
-      weekList10week = c((last_week-9):last_week)
-      #weekChoice <- weekListLocHalfYear # Enter as you want !!
-      weekChoice <- weekList1Year # Enter as you want !!
-      #weekChoice <- weekList10week # Enter as you want !!
-      DF_new<-subset(DF_n,numeric_periode  %in%  weekChoice) 
-      print(DF_new)
-      print(ggplot(DF_new,aes(factor(period),insurer),height=600, width=800)+
-              geom_point(aes(size = (2*Display_prop),colour = factor(insurer)),show_guide=FALSE)+
-              scale_size(range = c(0, 20*min(max(10/length(weekChoice),0.5),1)))+
-              xlab("Week")+ylab("")+
-              ggtitle(paste(paste(formulaLoc,"MRP sample - Trend in Display Rate"," "),s1,sep="\n\n"))+
-              theme(plot.title = element_text(lineheight=.6, face="bold"), 
-                    text=element_text(size=10), axis.text.x = element_text(angle=90, vjust=1)) +
-              scale_colour_manual(values = colorpalette))
-      ggsave(paste(path,paste(paste("TRDDISPRATE",s,formulaLoc,sep="_"),"png",sep="."),sep="/"),
-             scale = .8, width = 20,height = 10, units = "in")
-      
-    }
-  } 
-}
-
-
-############## cumul log graphs
-
-
-cumullog_graphs=function(data,forNames,Typc,Typ,path){
-  
-  # write those tables for calculing the cumul price evolution 
-  for (formulaLoc in forNames){
-    
-    for (typeLoc in Typ){
-      s <- paste(typeLoc,"Players",sep="")
-      s1 <- Typc$typesComplete[which(Typc$types == typeLoc)]
-      groupLoc <- get(s)
-      atx =data[data$insurer %in% get(s) & data$coverage == formulaLoc,]
-      
-      print(ggplot(atx,aes(x=as.factor(unique(period)),y=mean,group=insurer),ymin=200,height=500, width=800)+
-              geom_line(aes(x=as.factor(period),y=mean, colour = insurer,group=insurer),size=2,alpha=1)+
-              xlab("Week")+ylab("Cumulated Average Evolution")+
-              ggtitle(paste(paste(formulaLoc,"MRP sample - Cumulated Evolution"," "),s1,sep="\n\n"))+
-              theme(plot.title = element_text(lineheight=.6, face="bold"))+
-              scale_x_discrete("Week", labels = levels(as.factor(atx$period)))+
-              #scale_y_continuous(limits = c(-20, 20))+
-              theme(axis.text.x=element_text(angle=90))+
-              labs(colour="Company",linetype="Company",shape="Company") +
-              scale_colour_manual(values = colorpalette))
-      
-      ggsave(paste(path, paste(paste("Clog",s,formulaLoc,sep="_"),"png",sep="."),sep="/"),
-             scale = .8, width = 20,height = 10, units = "in")
-      
-    }
-  }
-}
-
 
 ### OnePeriodLog ###
 
@@ -626,7 +289,7 @@ onePeriodlog <- function(res,w1,w2) {
 ## Compute a cumulation line by line
 
 cumevollogFunc <- function(rs){
-
+  
   cumrs = rs
   cumrs[1] =0
   
@@ -635,18 +298,543 @@ cumevollogFunc <- function(rs){
   
   else{
     
-  for (lm in 1:(length(cumrs)-1)){
-    cumrs[lm+1] = cumrs[lm]+rs[lm+1]
-  }
+    for (lm in 1:(length(cumrs)-1)){
+      cumrs[lm+1] = cumrs[lm]+rs[lm+1]
+    }
   }
   
   return(cumrs)
 }
 
 
-############the funciton for strore and download database##############
 
-## cumulated evolution 
+
+### Function to compute the ranking.
+
+top_propor_Generic <- function(tables,top = 1){
+  
+  
+  ListFormulas=c(as.character(unique(tables$coverage)))
+  
+  ListPeriod=c(as.character(unique(tables$period)))
+  
+  for(i in 1:length(ListFormulas)){
+    LocFomulas=ListFormulas[i]
+    
+    for (j in 1: length(ListPeriod)){
+      LocPeriod=ListPeriod[j]
+      
+      temp=tables[tables$period==LocPeriod,]
+      temp=temp[temp$coverage==LocFomulas,]
+      
+      temp=as.data.table(temp)
+      temp[,rank:=rank(price,ties.method="first"),by=c("profilID","coverage","period","Segment")]
+      r= 1:top 
+      temp=temp[temp$rank%in%r,]
+      temp=na.omit(temp)
+      temp$ct=1
+      
+      temp[, cumsum:=lapply(.SD, sum), by = c("insurer","coverage","period","Segment"),.SDcols=c("ct")] # Nb of rank 1 for one insurer during one period for selected coverage
+      temp[, cumsum2:=lapply(.SD, sum), by = c("coverage","period","Segment"),.SDcols=c("ct")] # Nb of rank 1 for all insurers during one period for selected coverage
+      
+      
+      if(j==1)  {savefrdata=as.data.frame(temp)} else savefrdata=rbind(savefrdata,temp)
+      rm(temp)
+      
+    }
+    if(i==1)  {savefrdataTotal=as.data.frame(savefrdata)} else savefrdataTotal=rbind(savefrdataTotal,savefrdata)
+    rm(savefrdata)
+  }
+  return(savefrdataTotal)
+}
+
+
+
+
+### Top_Generic : Output graphs for ranking over months.
+
+top_Generic<- function(data,covfr, exclude_insurer, coveragenames = c("Top 1 Minimum","Top 1 Optimum"), TitleComplement = "All Players", PathComplement = "1st Ranking Proportion by month all"){
+  
+  if(length(covfr) != length(coveragenames)){stop("Parameter covfr and coveragenames must have the same length!")}
+  
+  data$proportion=data$cumsum/data$cumsum2
+  data$proportion=round(data$proportion*100)
+  
+  data = data[!data$insurer %in% exclude_insurer]
+  
+  for(i in 1:length(covfr)){
+    
+    coverageapping <- cbind(coveragenames,covfr)
+    
+    datatemp=data[data$coverage==covfr[i],]
+    
+    datatemp=data.frame(datatemp$insurer,datatemp$coverage,datatemp$period,datatemp$proportion,datatemp$Segment)
+    
+    names(datatemp)=c("insurer","coverage","period","proportion","Segment")
+    
+    datatemp=datatemp[!duplicated(datatemp[c("coverage","period","insurer","proportion","Segment")]),]
+    
+    datatemp =datatemp[with(datatemp, order(coverage,desc(period),as.character(insurer),as.character(Segment))), ]
+    
+    datatemp <- ddply(datatemp, .(coverage,period,Segment), mutate, csum = cumsum(proportion)-proportion/2)
+    
+    datatemp =datatemp[with(datatemp, order(desc(insurer),proportion,coverage,period,Segment,csum)), ]
+    
+    datatemp$insurer= factor(datatemp$insurer,levels=sort(levels(datatemp$insurer), TRUE))
+    
+    print(ggplot(datatemp,aes(x = period, y = proportion, fill = insurer,order=desc(insurer))) +
+            theme(legend.key.size = unit(1, "cm"))+
+            geom_bar(position = "fill",stat="identity") + facet_grid(.~Segment)+
+            scale_fill_manual(values = colorpalette,name=coverageapping[i])+ scale_y_continuous(labels = percent_format()) + wtl+
+            ggtitle(paste(paste(coveragenames[i],"Ranking Proportion by Month", TitleComplement,sep=" "),sep="\n\n"))+
+            geom_text(aes(y = csum/100, label = paste(proportion,"%",sep="")), size =7, hjust = 0.5, vjust = 0,stat="identity")+
+            xlab("Period") + ylab(""))
+    ggsave(paste(PathNamerank,file=paste(PathComplement,"-",covfr[i],".png",sep=""),sep="/"),width=20,height=14,dpi=100)
+    
+  }
+}
+
+# 
+# 
+# ####function for calcul variation between two periods### TODO: find where it is used.
+# evoloneperiod <- function(sum,p1,p2) {
+#   
+#   sum1=sum[sum$period==p1,]
+#   sum2=sum[sum$period==p2,]
+#   sumfinal=merge(sum1,sum2, by=("insurer"))
+#   
+#   sumfinal$var= sumfinal$cumevol.y- sumfinal$cumevol.x
+#   sumfinal=data.frame(sumfinal$insurer,sumfinal$var)
+#   
+# }
+# 
+# 
+# ######## cumul evolution function######
+# ####function for calcul variation###
+# 
+# #TODO: find where it is used
+# addplus <- function(var) {
+#   ifelse(var>0, paste("+", as.numeric(round(var,00)), sep=""),round(var,00))
+# }
+# 
+# #TODO: find where it is used
+# cumevolFunc <- function(rs){
+#   rs = rs/100
+#   cumrs = rs
+#   cumrs[1] = 100
+#   
+#   for (lm in 1:(length(cumrs))){
+#     cumrs[lm+1] = cumrs[lm]*(rs[lm]+1)
+#   }
+#   
+#   cumrs = cumrs-100
+#   cumrs = cumrs[2:length(cumrs)]
+#   cumrs
+# }
+# 
+# 
+# #TODO: find where it is used
+# cumulindex <- function(rs){
+#        cumrs=rs
+#        cumrs[1] = 100
+#   for (lm in 2:(length(rs))){
+#     cumrs[lm+1] = (cumrs[lm]+rs(lm+1))
+#   }
+# }
+
+
+
+### top 3 propor ###
+
+# top3propor <- function(pro){
+#   
+#   ListFormulas=c(as.character(unique(pro$coverage)))
+#   
+#   ListPeriod=c(as.character(unique(pro$period)))
+#   
+#   
+#   for(i in 1:length(ListFormulas)){
+#     LocFomulas=ListFormulas[i]
+#     
+#     for (j in 1: length(ListPeriod)){
+#       LocPeriod=ListPeriod[j]
+#       
+#       temp3=pro[pro$period==LocPeriod,]
+#       temp3=temp3[temp3$coverage==LocFomulas,]
+#       
+#       temp3=as.data.table(temp3)
+#       temp3[,rank:=rank(price,ties.method="first"),by=c("profilID","coverage","period")]
+#       r=c(1,2,3)
+#       temp3=temp3[temp3$rank%in%r,]
+#       temp3=na.omit(temp3)
+#       temp3$ct=1
+#       
+#       temp3[, cumsum:=lapply(.SD, sum), by = c("insurer","coverage","period"),.SDcols=c("ct")]
+#       temp3[, cumsum2:=lapply(.SD, sum), by = c("coverage","period"),.SDcols=c("ct")]
+#       
+#       if(j==1)  {savesfrdatat3=as.data.frame(temp3)} else savesfrdatat3=rbind(savesfrdatat3,temp3)
+#       rm(temp3)
+#     }
+#     if(i==1)  {savesfrdataTotal3=as.data.frame(savesfrdatat3)} else savesfrdataTotal3=rbind(savesfrdataTotal3,savesfrdatat3)
+#     rm(savesfrdatat3)
+#   }
+#   
+#   return(savesfrdataTotal3)
+# }
+# 
+# 
+# 
+# ### max na  and min na functions ###
+# 
+# maxna=function(x) {
+#   return(max(x,na.rm=T))
+# }
+# 
+# minna=function(x) {
+#   return(min(x,na.rm=T))
+# }
+# 
+# 
+# 
+# ### summary table indicators ###
+# 
+# onePeriodStats_max_min <- function(res,w1,w2) {
+#   weeksLoc <- c(w1,w2)
+#   
+#   
+#   bigDB <- data.frame("insurer"=NaN,"coverage"=NaN,"period"=NaN,
+#                       "PlayerType"=NaN,"AvgEvolByProfile"=NaN,"ImpactedProfile"=NaN,
+#                       "AvgPremium"=NaN,
+#                       "AvgPremium_var"=NaN,
+#                       "Max_variation"=NaN,
+#                       "Min_variation"=NaN,
+#                       "Display_prop" = NaN,
+#                       "Display_var" = NaN,
+#                       "NbProfiles"=NaN)
+#   
+#   
+#   for (j in 1:length(formulaNames)){
+#     
+#     #     for (k in 1:length(Types)){
+#     
+#     formulaLoc <- formulaNames[j]
+#     
+#     
+#     groupLoc <- unique(res$insurer)
+#     
+#     # extraction of the local DB
+#     resloc0 <- res[which(res$period %in% weeksLoc),]
+#     resloc1 <- resloc0[which(resloc0$coverage %in% formulaMapping[formulaMapping[,1]==formulaLoc,2]),]
+#     resloc2 <- resloc1[which(resloc1$insurer%in% groupLoc),]
+#     resloc <- resloc2
+#     resW1 <- resloc[which(resloc$period %in% weeksLoc[1]),]
+#     resW2 <- resloc[which(resloc$period %in% weeksLoc[2]),]
+#     
+#     # initialization of quantites to be computed
+#     nLoc <- length(groupLoc)+1
+#     nbProfiles <- matrix(0,nLoc,4)
+#     nbProfiles[1,1] <- length(unique(resW1$profilID))
+#     nbProfiles[1,2] <- length(unique(resW2$profilID))
+#     avgPremium <- matrix(0,nLoc,3)
+#     byProfile <- matrix(0,nLoc,4)
+#     
+#     for (i in 1:length(groupLoc)) {
+#       # keep only data specific to the assureur company under study
+#       idxW1 <- which(resW1$insurer == groupLoc[i],arr.ind=T)
+#       idxW2 <- which(resW2$insurer == groupLoc[i],arr.ind=T) 
+#       resW1loc <- resW1[idxW1,]; resW2loc <- resW2[idxW2,]
+#       
+#       # modify 
+#       resW1loc <- subset(resW1loc,select=c(period,profilID,price))
+#       resW2loc <- subset(resW2loc,select=c(period,profilID,price))
+#       
+#       # average on same profilID queries (if so)
+#       resW1loc$price<- ave(resW1loc$price,resW1loc$profilID)
+#       resW2loc$price <- ave(resW2loc$price,resW2loc$profilID)
+#       
+#       
+#       resW1loc <- unique(resW1loc)
+#       resW2loc <- unique(resW2loc)
+#       
+#       # build usefull tab for computations
+#       r1merge <- resW1loc
+#       r2merge <- resW2loc
+#       colnames(r1merge) <- c("periode1","profilID","price1")
+#       colnames(r2merge) <- c("periode2","profilID","price2")
+#       usefullTab <- merge(r1merge,r2merge)
+#       usefullTab$diffP <- usefullTab$price2/usefullTab$price1-1
+#       usefullTab=na.omit(usefullTab)
+#       
+#       # compute statistics
+#       
+#       if(nrow(usefullTab)!=0){ 
+#         
+#         byProfile[i+1,1] <- round(100*mean(usefullTab$diffP),2)
+#         byProfile[i+1,2] <- round(100*(sum(as.numeric(abs(usefullTab$diffP)>0))/length(usefullTab$profilID)),2)
+#         byProfile[i+1,3]<- round(100*maxna(usefullTab$diffP),2)
+#         byProfile[i+1,4]<- round(100*minna(usefullTab$diffP),2)
+#         
+#         
+#         nbProfiles[i+1,1] <- length(resW1loc$profilID)
+#         nbProfiles[i+1,2] <- length(resW2loc$profilID)
+#         avgPremium[i+1,1] <- round(mean(resW1loc$price),0)
+#         avgPremium[i+1,2] <- round(mean(resW2loc$price),0)
+#         
+#       }
+#       
+#       ## compute here relative display rate and rate rank among the groupLoc competitors
+#       
+#     }
+#     
+#     nbProfiles[,3] <- round(100*(nbProfiles[,2]/nbProfiles[1,2]),2)
+#     nbProfiles[,4] <- round(100*(nbProfiles[,2]/nbProfiles[,1]-1),2)
+#     avgPremium[,3] <- round(100*((avgPremium[,2]/avgPremium[,1])-1),2)
+#     
+#     rnames <- t(cbind("Total",t(groupLoc)))
+#     tabOut <- data.frame("AvgEvolByProfile"=byProfile[,1],
+#                          "ImpactedProfile"=byProfile[,2],
+#                          "Max_variation"=byProfile[,3],
+#                          "Min_variation"=byProfile[,4],
+#                          "AvgPremium"=avgPremium[,2],
+#                          "AvgPremium_var"=avgPremium[,3],
+#                          "Display_prop" = nbProfiles[,3],
+#                          "Display_var" = nbProfiles[,4],row.names = rnames,
+#                          "NbProfiles"=nbProfiles[,2])
+#     
+#     temp <- cbind("insurer"=groupLoc,"coverage"=rep(formulaLoc,nLoc-1),
+#                   "period"=rep(weeksLoc[2],nLoc-1),"PlayerType"="",tabOut[2:nLoc,])
+#     bigDB <- rbind(bigDB,temp)
+#     
+#   }
+#   
+#   bigDB <- data.frame(bigDB,row.names=NULL)
+#   bigDB <- na.omit(bigDB)
+#   return(bigDB);
+# }
+
+
+
+
+####### output graphs for checking ####### 
+
+#### function cumul graph#####
+
+cumul_graphs=function(data,forNames,Typc,Typ,path){
+  
+  # write those tables for calculing the cumul price evolution 
+  for (formulaLoc in forNames){
+    
+    for (typeLoc in Typ){
+      s <- paste(typeLoc,"Players",sep="")
+      s1 <- Typc$typesComplete[which(Typc$types == typeLoc)]
+      groupLoc <- get(s)
+      atx <- which(data$insurer %in% get(s) & data$coverage == formulaLoc)
+      df <- data[atx,]
+      result = data.frame(insurer = NaN,period = NaN, cumevol = NaN)
+      for (kl in 1:length(groupLoc)) {
+        dfperiodeLoc = df$period[which(df$insurer == groupLoc[kl])]
+        tempp = length(dfperiodeLoc)
+        repn = rep(groupLoc[kl],tempp)
+        repw = dfperiodeLoc
+        evolLoc = df$AvgEvolByProfile[which(df$insurer == groupLoc[kl])]
+        if (length(evolLoc) == 0) {next}
+        evolLocCum = cumevolFunc(evolLoc)
+        resultloc = data.frame(insurer= repn, period=repw,cumevol=evolLocCum)
+        result = rbind(result,resultloc)
+        
+        
+        result = na.omit(result)
+        DF_n = merge(df,result,by=intersect(names(df),names(result)))
+        gname <- paste(s,formulaLoc,sep="_")
+        
+      }
+      
+      filename <- paste(s, formulaLoc,".csv", sep="")
+      write.table(DF_n, file=paste("./output_MR_all",filename,sep="/"), col.names=TRUE,row.names=FALSE,sep=";",quote=FALSE)
+      
+      # cum evol graph
+      print(DF_n)
+      
+      print(ggplot(DF_n,aes(period,cumevol,group=insurer),ymin=200)+
+              geom_line(aes(colour=insurer),size=1.25)+
+              xlab("Week")+ylab("Cumulated Average Evolution")+
+              ggtitle(paste(paste(formulaLoc,"MRP sample - Cumulated Evolution"," "),s1,sep="\n\n"))+
+              theme(plot.title = element_text(lineheight=.6, face="bold"))+
+              scale_x_discrete("Week", labels = levels(DF_n$period))+
+              #scale_y_continuous(limits = c(-10, 30))+
+              theme(axis.text.x=element_text(angle=90))+
+              labs(colour="Company",linetype="Company",shape="Company") +
+              scale_colour_manual(values = colorpalette))
+      
+      #save the graph
+      ggsave(paste(path,paste(paste("CUMEVOL",s,formulaLoc,sep="_"),"png",sep="."),sep="/"),
+             scale = .8, width = 20,height = 10, units = "in") 
+      
+      
+    }
+  } 
+}
+
+
+
+### average evolution function ###
+
+average_graphs=function(data,forNames,Typc,Typ,path){
+  
+  # write those tables for calculing the cumul price evolution 
+  for (formulaLoc in forNames){
+    
+    for (typeLoc in Typ){
+      s <- paste(typeLoc,"Players",sep="")
+      s1 <- Typc$typesComplete[which(Typc$types == typeLoc)]
+      groupLoc <- get(s)
+      atx <- which(data$insurer %in% get(s) & data$coverage == formulaLoc)
+      df <- data[atx,]
+      result = data.frame(insurer = NaN,period = NaN, cumevol = NaN)
+      for (kl in 1:length(groupLoc)) {
+        dfperiodeLoc = df$period[which(df$insurer == groupLoc[kl])]
+        tempp = length(dfperiodeLoc)
+        repn = rep(groupLoc[kl],tempp)
+        repw = dfperiodeLoc
+        evolLoc = df$AvgEvolByProfile[which(df$insurer == groupLoc[kl])]
+        if (length(evolLoc) == 0) {next}
+        evolLocCum = cumevolFunc(evolLoc)
+        resultloc = data.frame(insurer= repn, period=repw,cumevol=evolLocCum)
+        result = rbind(result,resultloc)
+        
+        
+        result = na.omit(result)
+        df <- data.frame(df)
+        DF_n = merge(df,result,by=intersect(names(df),names(result)))
+        gname <- paste(s,formulaLoc,sep="_")
+        
+      }
+      
+      print(DF_n)
+      print(ggplot(DF_n,aes(x=period,y=AvgPremium,group=insurer),ymin=200,height=500, width=800)+
+              geom_line(aes(x=period,y=AvgPremium, colour = insurer,group=insurer),size=2,alpha=1)+
+              xlab("Week")+ylab("Average Premium")+
+              ggtitle(paste(paste(formulaLoc,"MRP sample - Average Premium"," "),sep=""))+
+              theme(plot.title = element_text(lineheight=.6, face="bold"))+
+              scale_fill_manual(values = colorpalette,name="insurer")+
+              theme(axis.text.x=element_text(angle=80))+
+              labs(colour="Company",linetype="Company",shape="Company")+
+              scale_colour_manual(values = colorpalette))
+      
+      ggsave(paste(path, paste(paste("AVGPREMIUM",s,formulaLoc,sep="_"),"png",sep="."),sep="/"),
+             scale = .8, width = 20,height = 10, units = "in")
+      
+    }
+  } 
+}
+
+
+
+### display function ###
+
+display_graphs=function(data,forNames,Typc,Typ,path){
+  
+
+  # write those tables for calculing the cumul price evolution 
+  for (formulaLoc in forNames){
+    
+    for (typeLoc in Typ){
+  
+      
+      s <- paste(typeLoc,"Players",sep="")
+      s1 <- Typc$typesComplete[which(Typc$types == typeLoc)]
+      groupLoc <- get(s)
+      atx <- which(data$insurer %in% get(s) & data$coverage == formulaLoc)
+      df <- data[atx,]
+      result = data.frame(insurer = NaN,period = NaN, cumevol = NaN)
+      for (kl in 1:length(groupLoc)) {
+        dfperiodeLoc = df$period[which(df$insurer == groupLoc[kl])]
+        tempp = length(dfperiodeLoc)
+        repn = rep(groupLoc[kl],tempp)
+        repw = dfperiodeLoc
+        evolLoc = df$AvgEvolByProfile[which(df$insurer == groupLoc[kl])]
+        if (length(evolLoc) == 0) {next}
+        evolLocCum = cumevolFunc(evolLoc)
+        resultloc = data.frame(insurer= repn, period=repw,cumevol=evolLocCum)
+        result = rbind(result,resultloc)
+        
+        
+        result = na.omit(result)
+        df <- data.frame(df)
+        DF_n = merge(df,result,by=intersect(names(df),names(result))) # this line can be the cause of a problem: vecseq...
+        gname <- paste(s,formulaLoc,sep="_")
+        
+      }
+      
+      DF_n$numeric_periode<-as.numeric(as.factor(DF_n$period))
+      last_week=max(DF_n$numeric_periode)
+      weekListLocHalfYear = c(round(last_week/2,0):last_week)
+      weekList1Year =c(1:last_week)
+      weekList10week = c((last_week-9):last_week)
+      #weekChoice <- weekListLocHalfYear # Enter as you want !!
+      weekChoice <- weekList1Year # Enter as you want !!
+      #weekChoice <- weekList10week # Enter as you want !!
+      DF_new<-subset(DF_n,numeric_periode  %in%  weekChoice) 
+      print(DF_new)
+      print(ggplot(DF_new,aes(factor(period),insurer),height=600, width=800)+
+              geom_point(aes(size = (2*Display_prop),colour = factor(insurer)),show_guide=FALSE)+
+              scale_size(range = c(0, 20*min(max(10/length(weekChoice),0.5),1)))+
+              xlab("Week")+ylab("")+
+              ggtitle(paste(paste(formulaLoc,"MRP sample - Trend in Display Rate"," "),s1,sep="\n\n"))+
+              theme(plot.title = element_text(lineheight=.6, face="bold"), 
+                    text=element_text(size=10), axis.text.x = element_text(angle=90, vjust=1)) +
+              scale_colour_manual(values = colorpalette))
+      ggsave(paste(path,paste(paste("TRDDISPRATE",s,formulaLoc,sep="_"),"png",sep="."),sep="/"),
+             scale = .8, width = 20,height = 10, units = "in")
+      
+    }
+  } 
+}
+
+
+### cumul log graphs ###
+
+
+cumullog_graphs=function(data,forNames,Typc,Typ,path){
+  
+  # write those tables for calculing the cumul price evolution 
+  for (formulaLoc in forNames){
+    
+    for (typeLoc in Typ){
+      s <- paste(typeLoc,"Players",sep="")
+      s1 <- Typc$typesComplete[which(Typc$types == typeLoc)]
+      groupLoc <- get(s)
+      atx =data[data$insurer %in% get(s) & data$coverage == formulaLoc,]
+      
+      print(ggplot(atx,aes(x=as.factor(unique(period)),y=mean,group=insurer),ymin=200,height=500, width=800)+
+              geom_line(aes(x=as.factor(period),y=mean, colour = insurer,group=insurer),size=2,alpha=1)+
+              xlab("Week")+ylab("Cumulated Average Evolution")+
+              ggtitle(paste(paste(formulaLoc,"MRP sample - Cumulated Evolution"," "),s1,sep="\n\n"))+
+              theme(plot.title = element_text(lineheight=.6, face="bold"))+
+              scale_x_discrete("Week", labels = levels(as.factor(atx$period)))+
+              #scale_y_continuous(limits = c(-20, 20))+
+              theme(axis.text.x=element_text(angle=90))+
+              labs(colour="Company",linetype="Company",shape="Company") +
+              scale_colour_manual(values = colorpalette))
+      
+      ggsave(paste(path, paste(paste("Clog",s,formulaLoc,sep="_"),"png",sep="."),sep="/"),
+             scale = .8, width = 20,height = 10, units = "in")
+      
+    }
+  }
+}
+
+
+
+
+
+
+
+####### Functions to store and download database ####### 
+
+
+### cumulated evolution ###
+
 storeCumulatedEvolution <- function(data){
   
   cumtab=data.frame(period=data$period,insurer=data$insurer,coverage=data$coverage,type=data$type,cumul=data$cumul)
@@ -671,6 +859,12 @@ storeCumulatedEvolution <- function(data){
   dbUnloadDriver(drv)
   
 }
+
+
+
+
+### downloadCumulatedEvolution ###
+
 downloadCumulatedEvolution <- function(){
   
   ## loads the PostgreSQL driver
@@ -691,7 +885,9 @@ downloadCumulatedEvolution <- function(){
   
 }
 
-# Store the average premium
+
+
+### Store the average premium ###
 # SCHEMA : {period,insurer,coverage,type,avg}
 storeAveragePremium <- function(data){
   
@@ -719,6 +915,10 @@ storeAveragePremium <- function(data){
 }
 
 
+
+
+### downloadAveragePremium ###
+
 downloadAveragePremium  <- function(){
   
   ## loads the PostgreSQL driver
@@ -743,7 +943,7 @@ downloadAveragePremium  <- function(){
 }
 
 
-# Store the display rate
+### Store the display rate ###
 # SCHEMA : {period,insurer,coverage,type,avg}
 storeDisplay <- function(data){
   
@@ -779,8 +979,12 @@ storeDisplay <- function(data){
   ## Frees all the resources on the driver
   dbUnloadDriver(drv)
   
-  
 }
+
+
+
+### downloaddisplay ###
+
 downloaddisplay  <- function(){
   
   ## loads the PostgreSQL driver
@@ -804,7 +1008,11 @@ downloaddisplay  <- function(){
   
 }
 
-## store data for ranking calculation 
+
+
+
+### store data for ranking calculation ###
+
 storeItData_Direct <- function(itdata_dir){
   
   itdata_tmp=data.frame(period=itdata_dir$yearmonth,profilID=itdata_dir$profilID,insurer=itdata_dir$insurer,coverage=itdata_dir$coverage,price=itdata_dir$price)
@@ -828,7 +1036,10 @@ storeItData_Direct <- function(itdata_dir){
   
 }
 
-### download periods from ItData_Direct_monthly
+
+
+
+### download periods from ItData_Direct_monthly ###
 
 downloaddirect_period  <- function(){
   
@@ -853,7 +1064,10 @@ downloaddirect_period  <- function(){
   
 }
 
-### store direct players scope
+
+
+### store direct players scope ###
+
 storeDIRECTPLAYERS <- function(data){
   
   itdata_tmp=data.frame(insurer=data$insurer,period=data$period,coverage=data$coverage,PlayerType=data$PlayerType,AvgEvolByProfile=data$AvgEvolByProfile,ImpactedProfile=data$ImpactedProfile,AvgPremium=data$AvgPremium,
@@ -877,7 +1091,10 @@ storeDIRECTPLAYERS <- function(data){
   
 }
 
-### download periods from clean prices
+
+
+
+### Download periods from clean prices ###
 
 downloadcleanprice_period  <- function(){
   
@@ -902,7 +1119,11 @@ downloadcleanprice_period  <- function(){
   
 }
 
-## market index
+
+
+
+## Download market index ###
+
 downloadmarketindex<- function(){
   ## loads the PostgreSQL driver
   drv <- dbDriver("PostgreSQL")
@@ -920,172 +1141,3 @@ downloadmarketindex<- function(){
   
   return(marketindex_old)
 }
-
-# top 3
-
-## top 3 ranks
-top3propor <- function(pro){
-  
-  ListFormulas=c(as.character(unique(pro$coverage)))
-  
-  ListPeriod=c(as.character(unique(pro$period)))
-  
-  
-  for(i in 1:length(ListFormulas)){
-    LocFomulas=ListFormulas[i]
-    
-    for (j in 1: length(ListPeriod)){
-      LocPeriod=ListPeriod[j]
-      
-      temp3=pro[pro$period==LocPeriod,]
-      temp3=temp3[temp3$coverage==LocFomulas,]
-      
-      temp3=as.data.table(temp3)
-      temp3[,rank:=rank(price,ties.method="first"),by=c("profilID","coverage","period")]
-      r=c(1,2,3)
-      temp3=temp3[temp3$rank%in%r,]
-      temp3=na.omit(temp3)
-      temp3$ct=1
-      
-      temp3[, cumsum:=lapply(.SD, sum), by = c("insurer","coverage","period"),.SDcols=c("ct")]
-      temp3[, cumsum2:=lapply(.SD, sum), by = c("coverage","period"),.SDcols=c("ct")]
-      
-      if(j==1)  {savesfrdatat3=as.data.frame(temp3)} else savesfrdatat3=rbind(savesfrdatat3,temp3)
-      rm(temp3)
-    }
-    if(i==1)  {savesfrdataTotal3=as.data.frame(savesfrdatat3)} else savesfrdataTotal3=rbind(savesfrdataTotal3,savesfrdatat3)
-    rm(savesfrdatat3)
-  }
-  
-  return(savesfrdataTotal3)
-}
-
-### max na  and min na functions 
-# 
-maxna=function(x) {
-  return(max(x,na.rm=T))
-}
-
-minna=function(x) {
-  return(min(x,na.rm=T))
-}
-
-#### summary table indicators
-
-onePeriodStats_max_min <- function(res,w1,w2) {
-  weeksLoc <- c(w1,w2)
-  
-  
-  bigDB <- data.frame("insurer"=NaN,"coverage"=NaN,"period"=NaN,
-                      "PlayerType"=NaN,"AvgEvolByProfile"=NaN,"ImpactedProfile"=NaN,
-                      "AvgPremium"=NaN,
-                      "AvgPremium_var"=NaN,
-                      "Max_variation"=NaN,
-                      "Min_variation"=NaN,
-                      "Display_prop" = NaN,
-                      "Display_var" = NaN,
-                      "NbProfiles"=NaN)
-  
-  
-  for (j in 1:length(formulaNames)){
-    
-    #     for (k in 1:length(Types)){
-    
-    formulaLoc <- formulaNames[j]
-    
-    
-    groupLoc <- unique(res$insurer)
-    
-    # extraction of the local DB
-    resloc0 <- res[which(res$period %in% weeksLoc),]
-    resloc1 <- resloc0[which(resloc0$coverage %in% formulaMapping[formulaMapping[,1]==formulaLoc,2]),]
-    resloc2 <- resloc1[which(resloc1$insurer%in% groupLoc),]
-    resloc <- resloc2
-    resW1 <- resloc[which(resloc$period %in% weeksLoc[1]),]
-    resW2 <- resloc[which(resloc$period %in% weeksLoc[2]),]
-    
-    # initialization of quantites to be computed
-    nLoc <- length(groupLoc)+1
-    nbProfiles <- matrix(0,nLoc,4)
-    nbProfiles[1,1] <- length(unique(resW1$profilID))
-    nbProfiles[1,2] <- length(unique(resW2$profilID))
-    avgPremium <- matrix(0,nLoc,3)
-    byProfile <- matrix(0,nLoc,4)
-    
-    for (i in 1:length(groupLoc)) {
-      # keep only data specific to the assureur company under study
-      idxW1 <- which(resW1$insurer == groupLoc[i],arr.ind=T)
-      idxW2 <- which(resW2$insurer == groupLoc[i],arr.ind=T) 
-      resW1loc <- resW1[idxW1,]; resW2loc <- resW2[idxW2,]
-      
-      # modify 
-      resW1loc <- subset(resW1loc,select=c(period,profilID,price))
-      resW2loc <- subset(resW2loc,select=c(period,profilID,price))
-      
-      # average on same profilID queries (if so)
-      resW1loc$price<- ave(resW1loc$price,resW1loc$profilID)
-      resW2loc$price <- ave(resW2loc$price,resW2loc$profilID)
-      
-      
-      resW1loc <- unique(resW1loc)
-      resW2loc <- unique(resW2loc)
-      
-      # build usefull tab for computations
-      r1merge <- resW1loc
-      r2merge <- resW2loc
-      colnames(r1merge) <- c("periode1","profilID","price1")
-      colnames(r2merge) <- c("periode2","profilID","price2")
-      usefullTab <- merge(r1merge,r2merge)
-      usefullTab$diffP <- usefullTab$price2/usefullTab$price1-1
-      usefullTab=na.omit(usefullTab)
-      
-      # compute statistics
-                              
-     if(nrow(usefullTab)!=0){ 
-
-      byProfile[i+1,1] <- round(100*mean(usefullTab$diffP),2)
-      byProfile[i+1,2] <- round(100*(sum(as.numeric(abs(usefullTab$diffP)>0))/length(usefullTab$profilID)),2)
-      byProfile[i+1,3]<- round(100*maxna(usefullTab$diffP),2)
-      byProfile[i+1,4]<- round(100*minna(usefullTab$diffP),2)
-      
-      
-      nbProfiles[i+1,1] <- length(resW1loc$profilID)
-      nbProfiles[i+1,2] <- length(resW2loc$profilID)
-      avgPremium[i+1,1] <- round(mean(resW1loc$price),0)
-      avgPremium[i+1,2] <- round(mean(resW2loc$price),0)
-      
-      }
-    
-      ## compute here relative display rate and rate rank among the groupLoc competitors
-      
-    }
-    
-    nbProfiles[,3] <- round(100*(nbProfiles[,2]/nbProfiles[1,2]),2)
-    nbProfiles[,4] <- round(100*(nbProfiles[,2]/nbProfiles[,1]-1),2)
-    avgPremium[,3] <- round(100*((avgPremium[,2]/avgPremium[,1])-1),2)
-    
-    rnames <- t(cbind("Total",t(groupLoc)))
-    tabOut <- data.frame("AvgEvolByProfile"=byProfile[,1],
-                         "ImpactedProfile"=byProfile[,2],
-                         "Max_variation"=byProfile[,3],
-                         "Min_variation"=byProfile[,4],
-                         "AvgPremium"=avgPremium[,2],
-                         "AvgPremium_var"=avgPremium[,3],
-                         "Display_prop" = nbProfiles[,3],
-                         "Display_var" = nbProfiles[,4],row.names = rnames,
-                         "NbProfiles"=nbProfiles[,2])
-    
-    temp <- cbind("insurer"=groupLoc,"coverage"=rep(formulaLoc,nLoc-1),
-                  "period"=rep(weeksLoc[2],nLoc-1),"PlayerType"="",tabOut[2:nLoc,])
-    bigDB <- rbind(bigDB,temp)
-    
-  }
-  
-  bigDB <- data.frame(bigDB,row.names=NULL)
-  bigDB <- na.omit(bigDB)
-  return(bigDB);
-}
-
-
-
-

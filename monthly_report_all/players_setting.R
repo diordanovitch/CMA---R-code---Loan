@@ -1,5 +1,5 @@
 
-#####  Scopes of insurer: Can change according to AL report or LL report.
+####  Scope of insurer.
 
 
 if(Report == "LeLynx_Report"){
@@ -7,6 +7,18 @@ if(Report == "LeLynx_Report"){
   RESIDUALPlayers <- c("AprilAuto", "ThelemAssur","DirectAssurancePack","l'olivierPack","AllianzPremium","AllSecurPremium","BONUS50","AssurOnLine","Assureo","AssurBonPlan","TEACerede","CarY","Carrefour")
   TRADIMUTUALPlayers <- c("AllianzCE","Allianz","MDP") 
   All <- c(DIRECTPlayers,RESIDUALPlayers,TRADIMUTUALPlayers)
+  
+  
+  
+}else if(Report == "Assurland_Loan"){
+  MUTUELLEPlayers <- c("MAAF Assurances")
+  BANCASSUREURPlayers <- c("Cardif") 
+  CLASSIQUEPlayers <- c("Groupe AVIVA", "AXA", "SIMPL'ASSUR","Groupe AXA")
+  ALTERNATIFSPlayers <- c("AFI-ESCA","ALPTIS","AsCourtage","CSF Assurances","HODEVA","Zen'up")
+  All<-c("MAAF Assurances","Cardif","Groupe AVIVA", "AXA", "SIMPL'ASSUR","Groupe AXA","AFI-ESCA","ALPTIS","AsCourtage","CSF Assurances","HODEVA","Zen'up")
+
+    
+  
   
 }else if(Report == "Assurland_Report"){
   DIRECTPlayers <- c("AllSecur","clicMAAF","l'Olivier","Assu2000","Eurofil","Direct Assurance","ALOA","Amaguiz","IDMacif","Assureo","SIMPL'ASSUR","AcommeAssure","AXA_FR")
@@ -41,7 +53,7 @@ if(Report == "LeLynx_Report"){
 
 
 
-#### Scope of coverages 
+#### Scope of coverage. 
 
 if(Report == "LeLynx_Report"){ 
   covfr = c("RC","RC-EXT","RC-TR")
@@ -49,6 +61,14 @@ if(Report == "LeLynx_Report"){
   formulaNames <- covfr
   formulaTypes <- coveragenames
   formulaMapping <- cbind(formulaNames,formulaNames)
+  
+}else if(Report == "Assurland_Loan"){ 
+  covfr = c("Formule Optimum","Minimum")
+  coveragenames = c("Top 1 Formule Optimum","Top 1 Minimum")
+  formulaNames <- covfr 
+  formulaTypes <- coveragenames 
+  formulaMapping <- cbind(formulaNames,formulaNames)
+  
 }else if(Report == "Assurland_Report"){ 
   covfr = c("RC","RC-BDG","RC-BDG-VI","RC-TR")
   coveragenames = c("Top 1 MTPL","Top 1 MTPL BDG","Top 1 MTPL BDG VI","Top 1 Full Co.")
