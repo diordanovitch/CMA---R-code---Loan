@@ -1,7 +1,7 @@
 Source = "MONTHLY"
 
-
-lp = "Y17W46"     # lastperiod, from where we want to update
+.
+lp = "Y17W46"     # lastperiod, from where we want to update, Y--W-- format.
 weekormonth = 46
 year = 2017
 

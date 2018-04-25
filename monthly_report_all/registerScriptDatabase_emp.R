@@ -213,7 +213,7 @@ save(pricegap_predata,file="./output_MR_all/Assurland_Loan/pricegap_emp.RData")
 
 
 
-## We compute the market intensity table and we store it. 
+## We compute the market intensity table and we save it. 
 
 
 frdatatemp=data.frame(frdata1_new$yearmonth,frdata1_new$profilID,frdata1_new$insurer,frdata1_new$coverage,frdata1_new$price,frdata1_new$Segment)
