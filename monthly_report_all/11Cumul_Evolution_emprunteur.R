@@ -100,10 +100,9 @@ summaryTab=unique(summaryTab)
 
 
 
-### ? ###
+### Cumulated evolution ###
 
 ## Calculate log variation between two periods in using  "onePeriodlog" function.
-## ADDED TO AVOID TOO much calculations.
 
 
 

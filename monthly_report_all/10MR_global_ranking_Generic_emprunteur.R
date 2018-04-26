@@ -1,85 +1,61 @@
 
-### Ranking ###
+### Global Ranking ###
 
-data <- crawling_all
+ranking_top1 = top_propor_Generic(New_Table,top = 1)
+
+ranking_top1$proportion=ranking_top1$cumsum/ranking_top1$cumsum2
+ranking_top1$proportion=round(ranking_top1$proportion*100)
+ranking_top1 = ranking_top1[,-c(1,4,5,6,8,10,11,12,13)]
+ranking_top1 <- as.data.table(ranking_top1)
+ranking_top1 <- unique(ranking_top1, by=c("insurer", "coverage"))
 
 
-## Process already done normally.
-# data$period <- paste( "Y",substr(data$year,3,4), "W",formatC(data$week,width=2, flag="0") , sep = "")
-# data$yearmonth <- paste( "Y",substr(data$year,3,4), "M",formatC(data$month,width=2, flag="0") , sep = "")
-
-
-
-## We filter in the seperiod scope.
-
-frdatatemp=data[data$yearmonth%in%seperiod ,]
+save(ranking_top1,file= ("./Belharra_Crawling_Code/Tables/ranking_top1.RData")) 
 
 
 
 
-## Change structure of table - Reformating
+ranking_top3 = top_propor_Generic(New_Table,top = 3)
 
-frdatatemp$Segment <- 'Global'
-frdatatemp$period<-NULL
-frdatatemp$date_aspiration<-NULL
-frdatatemp=data.frame(frdatatemp$profilID,frdatatemp$insurer,frdatatemp$coverage,frdatatemp$price,frdatatemp$yearmonth, frdatatemp$Segment)
-names(frdatatemp)=c("profilID","insurer","coverage","price","period","Segment")
+ranking_top3$proportion=ranking_top3$cumsum/ranking_top3$cumsum2
+ranking_top3$proportion=round(ranking_top3$proportion*100)
+ranking_top3 = ranking_top3[,-c(1,4,5,6,8,10,11,12,13)]
+ranking_top3 <- as.data.table(ranking_top3)
+ranking_top3 <- unique(ranking_top3, by=c("insurer", "coverage"))
 
-
-## Compute the mean by month for the price for every profilID (in case there are several lines for one ProfilId).
-
-frdatatemp=aggregate(frdatatemp$price ~ frdatatemp$period+frdatatemp$profilID+frdatatemp$insurer+frdatatemp$coverage+frdatatemp$Segment, FUN=mean)
-names(frdatatemp)=c("period","profilID","insurer","coverage","Segment","price")
-
-
-## We check that there are only known insurers in the DB.  
-
-frdatatemp_classique= frdatatemp[frdatatemp$insurer%in% All,]
-
-
-
-
-## We compute top 1 tables for each coverage, and one table with all coverages.
-
-
-frdatatemp_classique_opti=frdatatemp_classique[frdatatemp_classique$coverage%in%c("Formule Optimum"),]
-
-top1_opti=top_propor_Generic(frdatatemp_classique_opti,top = 1)
-
-
-frdatatemp_other=frdatatemp_classique[frdatatemp_classique$coverage%in%c("Minimum"),]
-
-top1_other=top_propor_Generic(frdatatemp_other,top = 1)
-
-
-#table_classique=rbind(table_classique_opti, table_classique_other) # Should be the same as :
-top1_classique = top_propor_Generic(frdatatemp_classique,top = 1)
-
-save(top1_classique,file= ("./output_MR_all/Assurland_Loan/rank_top1_emp.RData")) 
+save(ranking_top3,file= ("./Belharra_Crawling_Code/Tables/ranking_top3.RData")) 
 
 
 
 
 
-## We compute top 3 tables for each coverage, and one table with all coverages.
-
-frdatatemp_top3_opti=frdatatemp_classique[frdatatemp_classique$coverage%in%c("Formule Optimum"),]
-
-top3_opti=top_propor_Generic(frdatatemp_top3_opti,top = 3)
 
 
-frdatatemp_top3_other=frdatatemp_classique[frdatatemp_classique$coverage%in%c("Minimum"),]
-top3_other=top_propor_Generic(frdatatemp_top3_other,top = 3)
+### Ranking by player ###
+
+# ranking_player <- genrankovermonths(New_Table, "AXA", "AXA", formulaNames)
 
 
-#top3_classique=rbind(table_top3_opti, table_top3_other) # Should be the same as :
-top3_classique = top_propor_Generic(frdatatemp_classique,top = 3)
 
-top3_classique$proportion=top3_classique$cumsum/top3_classique$cumsum2
-top3_classique$proportion=round(top3_classique$proportion*100)
-top3_classique = top3_classique[,-c(8,9,10)]
 
-save(top3_classique,file= ("./output_MR_all/Assurland_Loan/rank_top3_emp.RData")) 
+ranking_by_player_all <- NULL
+
+for (insurer in All) {
+  tryCatch({
+    nam <- paste("ranking_player_", insurer, sep = "")
+    rank <- genrankovermonths(New_Table, insurer, insurer, formulaNames)
+    rank$insurer <- insurer
+    assign(nam, rank)
+    ranking_by_player_all <- rbind(ranking_by_player_all, rank) 
+  }, error=function(e){})
+} 
+
+ranking_by_player_all <- ranking_by_player_all[,-c(5,6)]
+
+
+save(ranking_by_player_all,file= ("./Belharra_Crawling_Code/Tables/ranking_by_player_all.RData")) 
+
+
 
 
 # ## Compute ranking graphs : TO BE FIXED ##

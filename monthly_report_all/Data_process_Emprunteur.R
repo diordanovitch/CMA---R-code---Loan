@@ -1,6 +1,6 @@
 ## We import the last crawling
 
-crawling_new <- read.csv(file="./output_MR_all/Assurland_Loan/ASSURLAND_LOAN_prices_March.csv", header=TRUE, sep=";")
+crawling_new <- read.csv(file=crawling_file, header=TRUE, sep=";")
 
 
 
