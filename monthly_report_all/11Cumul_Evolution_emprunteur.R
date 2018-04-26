@@ -221,7 +221,7 @@ logevolfinal=unique(logevolfinal)
 
 ## Save the final file
 
-save(logevolfinal,file=paste0("./output_MR_all/Assurland_Loan/logevolfinal_emp.RData")) # why save this
+save(logevolfinal,file=paste0("./output_MR_all/Assurland_Loan/logevolfinal_emp.RData")) 
 
 
 
